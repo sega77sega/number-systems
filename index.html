@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Перевод систем счисления</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #14161a;
+    --panel: #1c1f25;
+    --line: #2c313a;
+    --text: #e6e8ec;
+    --muted: #8b93a1;
+    --accent: #5aa9ff;
+    --error: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main {
+    width: min(560px, 100%);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  p.hint { margin: 0 0 20px; color: var(--muted); font-size: 14px; }
+  label { display: block; margin-bottom: 6px; font-size: 14px; color: var(--muted); }
+  input, select {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-top: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  th { color: var(--muted); font-size: 13px; font-weight: 500; }
+  td:last-child { color: var(--accent); word-break: break-all; }
+  .error {
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--error);
+    border-radius: 8px;
+    color: var(--error);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Перевод систем счисления</h1>
+  <p class="hint">Введи число в любой системе, получишь его во всех сразу.</p>
+
+  <label for="value">Число</label>
+  <input id="value" value="1010" autocomplete="off" spellcheck="false">
+
+  <label for="base">Исходная система</label>
+  <select id="base">
+    <option value="2">2 — двоичная</option>
+    <option value="8">8 — восьмеричная</option>
+    <option value="10" selected>10 — десятичная</option>
+    <option value="16">16 — шестнадцатеричная</option>
+  </select>
+
+  <div id="error" class="error" hidden></div>
+
+  <table>
+    <thead>
+      <tr><th>Система</th><th>Результат</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Двоичная (2)</td><td id="out-2">—</td></tr>
+      <tr><td>Восьмеричная (8)</td><td id="out-8">—</td></tr>
+      <tr><td>Десятичная (10)</td><td id="out-10">—</td></tr>
+      <tr><td>Шестнадцатеричная (16)</td><td id="out-16">—</td></tr>
+    </tbody>
+  </table>
+</main>
+
+<script>
+  const DIGITS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const TARGETS = [2, 8, 10, 16];
+
+  const input = document.getElementById("value");
+  const baseSelect = document.getElementById("base");
+  const errorBox = document.getElementById("error");
+
+  // Возвращает BigInt, null для пустой строки или NaN на недопустимый символ.
+  function parseInBase(text, base) {
+    const clean = text.trim().toUpperCase().replace(/[\s_]/g, "");
+    if (clean === "") return null;
+
+    let value = 0n;
+    for (const char of clean) {
+      const digit = DIGITS.indexOf(char);
+      if (digit === -1 || digit >= base) return NaN;
+      value = value * BigInt(base) + BigInt(digit);
+    }
+    return value;
+  }
+
+  function toBase(value, base) {
+    if (value === 0n) return "0";
+
+    let result = "";
+    let rest = value;
+    while (rest > 0n) {
+      result = DIGITS[Number(rest % BigInt(base))] + result;
+      rest /= BigInt(base);
+    }
+    return result;
+  }
+
+  function render() {
+    const base = Number(baseSelect.value);
+    const parsed = parseInBase(input.value, base);
+
+    if (parsed === null) {
+      errorBox.hidden = true;
+      TARGETS.forEach((b) => (document.getElementById("out-" + b).textContent = "—"));
+      return;
+    }
+
+    if (Number.isNaN(parsed)) {
+      errorBox.hidden = false;
+      errorBox.textContent = "Символ не подходит для системы счисления " + base + ".";
+      TARGETS.forEach((b) => (document.getElementById("out-" + b).textContent = "—"));
+      return;
+    }
+
+    errorBox.hidden = true;
+    TARGETS.forEach((b) => {
+      document.getElementById("out-" + b).textContent = toBase(parsed, b);
+    });
+  }
+
+  input.addEventListener("input", render);
+  baseSelect.addEventListener("change", render);
+  render();
+</script>
+</body>
+</html>
